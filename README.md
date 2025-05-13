@@ -13,5 +13,5 @@ The app allows users to **upload only a DEM file (`.tif`)**, and it automaticall
 - Automatically estimates a basic **Bill of Materials (BoM)**:
   - Excavation volume (based on area and dummy depth).
   - Concrete and steel quantity estimates.
-  - **Estimated cost (reduced to $5 per m³ for demo purposes).**
+  - **Estimated cost.**
 - Presents results and BoM in a **simple web page table**.
