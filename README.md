@@ -1,13 +1,17 @@
 # Basic Substation Site Pre-Feasibility Checker
 
 This is a beginner-level GIS-based web application developed using Python and Flask.  
-It allows users to upload a CSV file with site coordinates and evaluates basic pre-feasibility for substation site selection.
+The app allows users to **upload only a DEM file (`.tif`)**, and it automatically analyzes the terrain and generates a basic **Bill of Materials (BoM)** estimation for substation site pre-feasibility.
 
 ## Features
-- Uses a simple DEM file to extract elevation using Rasterio.
-- Calculates a dummy slope using Scipy.
-- Performs a basic suitability check:
-  - Elevation must be between 100 and 500 meters.
-  - Slope must be less than 100.
-- Calculates a simple estimated cost using elevation.
-- Displays the results in a table on the web page.
+- Upload **only a DEM (`.tif`) file**.
+- Reads and analyzes the **elevation data from the DEM**.
+- Calculates:
+  - Mean, Min, Max elevation.
+  - Approximate average slope using a simple Sobel filter.
+  - Total area within **100-500 meters elevation range**.
+- Automatically estimates a basic **Bill of Materials (BoM)**:
+  - Excavation volume (based on area and dummy depth).
+  - Concrete and steel quantity estimates.
+  - **Estimated cost (reduced to $5 per m³ for demo purposes).**
+- Presents results and BoM in a **simple web page table**.
