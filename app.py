@@ -1,8 +1,5 @@
 from flask import Flask, render_template, request
-import pandas as pd
-import geopandas as gpd
 import rasterio
-from shapely.geometry import Point
 from scipy import ndimage
 import numpy as np
 
@@ -13,54 +10,63 @@ def upload_page():
     return render_template('upload.html')
 
 @app.route('/process', methods=['POST'])
-def process_file():
-    # Read uploaded CSV
+def process_dem():
     file = request.files['file']
-    df = pd.read_csv(file)
+    
+    # Save uploaded DEM temporarily
+    dem_path = 'uploaded_dem.tif'
+    file.save(dem_path)
+    
+    # Open DEM
+    dem = rasterio.open(dem_path)
+    elevation_data = dem.read(1)
+    
+    # Mask no data values
+    elevation_data = np.where(elevation_data == dem.nodata, np.nan, elevation_data)
+    
+    # Elevation stats
+    mean_elev = np.nanmean(elevation_data)
+    min_elev = np.nanmin(elevation_data)
+    max_elev = np.nanmax(elevation_data)
+    
+    # Slope calculation
+    dx = ndimage.sobel(elevation_data, axis=0, mode='constant', cval=np.nan)
+    dy = ndimage.sobel(elevation_data, axis=1, mode='constant', cval=np.nan)
+    slope = np.hypot(dx, dy)
+    mean_slope = np.nanmean(slope)
+    
+    # Calculate area where elevation is between 100 and 500 meters
+    suitable_mask = (elevation_data >= 100) & (elevation_data <= 500)
+    suitable_cells = np.count_nonzero(suitable_mask)
+    pixel_area = dem.res[0] * dem.res[1]
+    total_area_m2 = suitable_cells * pixel_area * (111320 ** 2)
 
-    # Open DEM file
-    dem_file = 'data/sample_dem.tif'
-    dem = rasterio.open(dem_file)
+    # BoM estimates
+    excavation_volume = total_area_m2 * 2
+    concrete_tons = excavation_volume * 0.1
+    steel_tons = excavation_volume * 0.02
+    estimated_cost = excavation_volume * 5
 
-    results = []
-
-    for _, row in df.iterrows():
-        site_name = row['Site Name']
-        lon = row['Longitude']
-        lat = row['Latitude']
-
-        # Get row, col from lon, lat
-        row_col = dem.index(lon, lat)
-        elevation = dem.read(1)[row_col[0], row_col[1]]
-
-        # Dummy slope using simple Sobel filter
-        elevation_data = dem.read(1)
-        dx = ndimage.sobel(elevation_data, 0)
-        dy = ndimage.sobel(elevation_data, 1)
-        slope = np.hypot(dx[row_col[0], row_col[1]], dy[row_col[0], row_col[1]])
-
-        # Create buffer using Shapely (1km buffer just as example)
-        point = Point(lon, lat)
-        buffer = point.buffer(0.01)  # Approx 1km
-
-        # Dummy suitability check
-        suitability = 'Suitable' if 100 < elevation < 500 and slope < 100 else 'Not Suitable'
-
-        # Dummy cost
-        cost = 10000 + elevation * 2
-
-        results.append({
-            'Site Name': site_name,
-            'Elevation': elevation,
-            'Slope': slope,
-            'Suitability': suitability,
-            'Estimated Cost': cost
-        })
-
-    # Create DataFrame for results
-    results_df = pd.DataFrame(results)
-
-    return results_df.to_html(index=False)
+    # Create HTML output
+    result = f"""
+    <h2>DEM Analysis Results</h2>
+    <ul>
+        <li>Mean Elevation: {mean_elev:.2f} meters</li>
+        <li>Min Elevation: {min_elev:.2f} meters</li>
+        <li>Max Elevation: {max_elev:.2f} meters</li>
+        <li>Average Slope (approximate): {mean_slope:.2f}</li>
+        <li>Total Suitable Area (approx): {total_area_m2/1e6:.2f} km²</li>
+    </ul>
+    <h2>Estimated BoM (Bill of Materials)</h2>
+    <table border="1">
+        <tr><th>Item</th><th>Quantity</th></tr>
+        <tr><td>Excavation Volume</td><td>{excavation_volume:.2f} m³</td></tr>
+        <tr><td>Concrete</td><td>{concrete_tons:.2f} tons</td></tr>
+        <tr><td>Steel</td><td>{steel_tons:.2f} tons</td></tr>
+        <tr><td>Estimated Cost</td><td>${estimated_cost:,.2f}</td></tr>
+    </table>
+    """
+    return result
 
 if __name__ == '__main__':
     app.run(debug=True)
