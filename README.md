@@ -4,7 +4,6 @@ This is a beginner-level GIS-based web application developed using Python and Fl
 It allows users to upload a CSV file with site coordinates and evaluates basic pre-feasibility for substation site selection.
 
 ## Features
-- Reads user-uploaded site coordinates (latitude, longitude).
 - Uses a simple DEM file to extract elevation using Rasterio.
 - Calculates a dummy slope using Scipy.
 - Performs a basic suitability check:
