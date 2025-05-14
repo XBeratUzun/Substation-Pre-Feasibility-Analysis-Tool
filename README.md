@@ -11,7 +11,7 @@ The app allows users to **upload only a DEM file (`.tif`)**, and it automaticall
   - Approximate average slope using a simple Sobel filter.
   - Total area within **100-500 meters elevation range**.
 - Automatically estimates a basic **Bill of Materials (BoM)**:
-  - Excavation volume (based on area and dummy depth).
+  - Excavation volume (based on area and depth).
   - Concrete and steel quantity estimates.
   - **Estimated cost.**
 - Presents results and BoM in a **simple web page table**.
