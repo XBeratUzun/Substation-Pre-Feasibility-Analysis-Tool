@@ -1,6 +1,6 @@
 # Basic Substation Site Pre-Feasibility Checker
 
-This is a beginner-level GIS-based web application developed using Python and Flask.  
+This is a beginner-level GIS-based web application developed using Python.  
 The app allows users to **upload only a DEM file (`.tif`)**, and it automatically analyzes the terrain and generates a basic **Bill of Materials (BoM)** estimation for substation site pre-feasibility.
 
 ## Features
