@@ -2,6 +2,8 @@ from flask import Flask, render_template, request
 import rasterio
 from scipy import ndimage
 import numpy as np
+from shapely.geometry import Polygon
+import geopandas as gpd
 
 app = Flask(__name__)
 
@@ -29,23 +31,38 @@ def process_dem():
     min_elev = np.nanmin(elevation_data)
     max_elev = np.nanmax(elevation_data)
     
-    # Slope calculation
+    # Slope calculation using Sobel
     dx = ndimage.sobel(elevation_data, axis=0, mode='constant', cval=np.nan)
     dy = ndimage.sobel(elevation_data, axis=1, mode='constant', cval=np.nan)
     slope = np.hypot(dx, dy)
     mean_slope = np.nanmean(slope)
     
-    # Calculate area where elevation is between 100 and 500 meters
+    # Suitable area calculation
     suitable_mask = (elevation_data >= 100) & (elevation_data <= 500)
     suitable_cells = np.count_nonzero(suitable_mask)
     pixel_area = dem.res[0] * dem.res[1]
     total_area_m2 = suitable_cells * pixel_area * (111320 ** 2)
 
     # BoM estimates
-    excavation_volume = total_area_m2 * 2
+    excavation_volume = total_area_m2 * 2  # assuming 2m depth
     concrete_tons = excavation_volume * 0.1
     steel_tons = excavation_volume * 0.02
-    estimated_cost = excavation_volume * 5
+    estimated_cost = excavation_volume * 5  # reduced to $5 per m³
+
+    # Create a simple bounding box polygon of the entire DEM
+    bounds = dem.bounds
+    dem_polygon = Polygon([
+        (bounds.left, bounds.top),
+        (bounds.right, bounds.top),
+        (bounds.right, bounds.bottom),
+        (bounds.left, bounds.bottom)
+    ])
+
+    # Create a GeoDataFrame
+    gdf = gpd.GeoDataFrame({'Suitable Area Approx. (km²)': [total_area_m2 / 1e6]}, geometry=[dem_polygon], crs=dem.crs)
+
+    # For demonstration
+    area_deg2 = gdf.area[0]
 
     # Create HTML output
     result = f"""
@@ -56,6 +73,7 @@ def process_dem():
         <li>Max Elevation: {max_elev:.2f} meters</li>
         <li>Average Slope (approximate): {mean_slope:.2f}</li>
         <li>Total Suitable Area (approx): {total_area_m2/1e6:.2f} km²</li>
+        <li>DEM Bounding Box Area (deg², rough): {area_deg2:.4f}</li>
     </ul>
     <h2>Estimated BoM (Bill of Materials)</h2>
     <table border="1">
